@@ -1,0 +1,63 @@
+
+# - name: Update and upgrade apt packages
+#   apt:
+#     upgrade: yes
+#     update_cache: yes
+#     autoremove: true 
+#     clean: true
+#     force_apt_get: true
+#     state: fixed
+
+- name: Manage Apt Cache and Packages
+  apt:
+    name: 
+    - curl
+    - wget
+    - gnupg2
+    - python3-git
+    state: present
+  
+- name: Manage Zeek APT Key
+  apt_key:
+    url: https://download.opensuse.org/repositories/security:zeek/xUbuntu_22.04/Release.key
+
+- name: Manage Zeek APT Repo
+  apt_repository:
+    repo: deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_22.04/ /
+    state: present
+
+- name: Manage Zeek
+  apt:
+    name: zeek
+    update_cache: yes
+
+- name: Ensure Zeek package manager installed
+  pip:
+    name: zkg
+    state: present
+    executable: pip3
+
+- name: Manage node.cfg file
+  copy:
+    src: node.cfg
+    dest: /opt/zeek/etc/node.cfg
+    owner: root
+    group: zeek
+    mode: 0640
+
+- name: Deploy Zeek
+  command: /opt/zeek/bin/zeekctl deploy
+
+- name: Setup Zeek cron
+  cron:
+    name: zeek cron
+    minute: "*/5"
+    job: "/opt/zeek/bin/zeekctl cron"
+    cron_file: zeek_cron
+    user: root
+
+- name: Add a path to system-wide $PATH.
+  copy:
+    dest: /etc/profile.d/custom-path.sh
+    content: 'PATH=$PATH:/opt/zeek/bin'
+    mode: "0644"
